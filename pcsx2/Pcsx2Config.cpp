@@ -1986,6 +1986,7 @@ void Pcsx2Config::LoadSaveCore(SettingsWrapper& wrap)
 	SettingsWrapBitBool(SaveStateOnShutdown);
 	SettingsWrapBitBool(UseSavestateSelector);
 	SettingsWrapBitBool(EnableDiscordPresence);
+	SettingsWrapBitBool(EnableMameHooker);
 	SettingsWrapBitBool(InhibitScreensaver);
 	SettingsWrapBitBool(HostFs);
 

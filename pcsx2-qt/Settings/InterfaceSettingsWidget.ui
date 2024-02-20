@@ -92,13 +92,20 @@
         </property>
        </widget>
       </item>
+      <item row="4" column="0">
+       <widget class="QCheckBox" name="enableMameHooker">
+        <property name="text">
+         <string>Enable MameHooker</string>
+        </property>
+       </widget>
+      </item>		 
       <item row="4" column="1">
        <widget class="QCheckBox" name="mouseLock">
         <property name="text">
          <string>Enable Mouse Lock</string>
         </property>
        </widget>
-      </item>
+      </item>		 
      </layout>
     </widget>
    </item>

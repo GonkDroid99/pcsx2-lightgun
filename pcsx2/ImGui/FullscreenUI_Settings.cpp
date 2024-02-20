@@ -2414,6 +2414,8 @@ void FullscreenUI::DrawInterfaceSettingsPage()
 	MenuHeading(FSUI_CSTR("Integration"));
 	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_FA_CIRCLE_USER, "Enable Discord Presence"),
 		FSUI_CSTR("Shows the game you are currently playing as part of your profile on Discord."), "EmuCore", "EnableDiscordPresence", false);
+	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_FA_CHARGING_STATION, "Enable MameHooker"),
+		FSUI_CSTR("Enable MameHooker integration for light gun recoil and effects."), "EmuCore", "EnableMameHooker", false);
 
 	MenuHeading(FSUI_CSTR("Game Display"));
 	DrawToggleSetting(bsi, FSUI_ICONSTR(ICON_FA_TV, "Start Fullscreen"),

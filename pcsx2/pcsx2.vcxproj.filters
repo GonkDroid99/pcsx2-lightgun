@@ -1404,6 +1404,7 @@
     <ClCompile Include="SIO\Pad\PadPopn.cpp">
       <Filter>System\Ps2\Iop\SIO\PAD</Filter>
     </ClCompile>
+<<<<<<< HEAD
     <ClCompile Include="DebugTools\SymbolGuardian.cpp">
       <Filter>System\Ps2\Debug</Filter>
     </ClCompile>
@@ -1451,6 +1452,10 @@
     </ClCompile>
     <ClCompile Include="GS\GSDrawingEnvironment.cpp">
       <Filter>System\Ps2\GS\Renderers\Software</Filter>
+=======
+    <ClCompile Include="MameHookerProxy.cpp">
+      <Filter>Tools</Filter>
+>>>>>>> 40babb109 (mamehooker support)
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2368,6 +2373,7 @@
       <Filter>System\Ps2\Iop\SIO\PAD</Filter>
     </ClInclude>
     <ClInclude Include="SupportURLs.h" />
+<<<<<<< HEAD
     <ClInclude Include="DebugTools\SymbolGuardian.h">
       <Filter>System\Ps2\Debug</Filter>
     </ClInclude>
@@ -2418,6 +2424,10 @@
     </ClInclude>
     <ClInclude Include="SIO\Pad\PadNegcon.h">
       <Filter>System\Ps2\Iop\SIO\PAD</Filter>
+=======
+    <ClInclude Include="MameHookerProxy.h">
+      <Filter>Tools</Filter>
+>>>>>>> 40babb109 (mamehooker support)
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

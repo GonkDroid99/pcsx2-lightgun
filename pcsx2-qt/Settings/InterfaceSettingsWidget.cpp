@@ -100,6 +100,7 @@ InterfaceSettingsWidget::InterfaceSettingsWidget(SettingsWindow* settings_dialog
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.promptOnStateLoadSaveFailure, "UI", "PromptOnStateLoadSaveFailure", true);
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.savestateSelector, "EmuCore", "UseSavestateSelector", true);
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.discordPresence, "EmuCore", "EnableDiscordPresence", false);
+<<<<<<< HEAD
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.preferEnglishGameList, "UI", "PreferEnglishGameList", false);
 	connect(m_ui.preferEnglishGameList, &QCheckBox::checkStateChanged, this, [this] { emit preferEnglishGameListChanged(); });
 
@@ -123,6 +124,9 @@ InterfaceSettingsWidget::InterfaceSettingsWidget(SettingsWindow* settings_dialog
 	{
 		m_ui.mouseLock->setEnabled(false);
 	}
+=======
+	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.enableMameHooker, "EmuCore", "EnableMameHooker", false);
+>>>>>>> 40babb109 (mamehooker support)
 
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.startFullscreen, "UI", "StartFullscreen", false);
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.doubleClickTogglesFullscreen, "UI", "DoubleClickTogglesFullscreen", true);
@@ -218,11 +222,19 @@ InterfaceSettingsWidget::InterfaceSettingsWidget(SettingsWindow* settings_dialog
 	dialog()->registerWidgetHelp(
 		m_ui.discordPresence, tr("Enable Discord Presence"), tr("Unchecked"),
 		tr("Shows the game you are currently playing as part of your profile in Discord."));
+<<<<<<< HEAD
 	dialog()->registerWidgetHelp(
 		m_ui.mouseLock, tr("Enable Mouse Lock"), tr("Unchecked"),
 		tr("Locks the mouse cursor to the windows when PCSX2 is in focus and all other windows are closed.<br><b>Unavailable on Linux Wayland.</b><br><b>Requires accessibility permissions on macOS.</b>"));
 	dialog()->registerWidgetHelp(
 		m_ui.doubleClickTogglesFullscreen, tr("Double-Click Toggles Fullscreen"), tr("Checked"),
+=======
+	dialog->registerWidgetHelp(
+		m_ui.enableMameHooker, tr("Enable MameHooker"), tr("Unchecked"),
+		tr("Enable MameHooker, it's advised to use gun4ir com instead if you can."));
+	dialog->registerWidgetHelp(
+		m_ui.doubleClickTogglesFullscreen, tr("Double-Click Toggles Fullscreen"), tr("Checked"), 
+>>>>>>> 40babb109 (mamehooker support)
 		tr("Allows switching in and out of fullscreen mode by double-clicking the game window."));
 	dialog()->registerWidgetHelp(
 		m_ui.disableWindowResizing, tr("Disable Window Resizing"), tr("Unchecked"),

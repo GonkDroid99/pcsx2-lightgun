@@ -1357,6 +1357,7 @@ struct Pcsx2Config
 		SaveStateOnShutdown : 1, // default value for saving state on shutdown
 		EnableDiscordPresence : 1, // enables discord rich presence integration
 		UseSavestateSelector : 1,
+		EnableMameHooker : 1,
 		InhibitScreensaver : 1,
 		BackupSavestate : 1,
 		ManuallySetRealTimeClock : 1, // passes user-set real-time clock information to cdvd at startup
