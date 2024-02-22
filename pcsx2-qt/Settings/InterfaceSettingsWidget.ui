@@ -105,6 +105,13 @@
          <string>Enable Mouse Lock</string>
         </property>
        </widget>
+      </item>
+      <item row="5" column="0">
+       <widget class="QCheckBox" name="autoBootSaveStateTen">
+        <property name="text">
+         <string>AutoBoot SaveState 10</string>
+        </property>
+       </widget>
       </item>		 
      </layout>
     </widget>

@@ -1358,6 +1358,7 @@ struct Pcsx2Config
 		EnableDiscordPresence : 1, // enables discord rich presence integration
 		UseSavestateSelector : 1,
 		EnableMameHooker : 1,
+		AutoBootSaveStateTen : 1,
 		InhibitScreensaver : 1,
 		BackupSavestate : 1,
 		ManuallySetRealTimeClock : 1, // passes user-set real-time clock information to cdvd at startup

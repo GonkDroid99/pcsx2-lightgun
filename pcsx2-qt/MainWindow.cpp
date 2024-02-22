@@ -1551,11 +1551,30 @@ void MainWindow::onGameListEntryActivated()
 
 	const std::optional<bool> resume =
 		promptForResumeState(QString::fromStdString(VMManager::GetSaveStateFileName(entry->serial.c_str(), entry->crc, -1)));
+	bool cancelresume = false;
 	if (!resume.has_value())
 	{
-		// cancelled
-		return;
+		cancelresume = true;
 	}
+
+	//ForceLoadSaveStateTen
+	if (EmuConfig.AutoBootSaveStateTen)
+	{
+		if (cancelresume || !resume.value())
+		{
+			std::string saveStateFile = VMManager::GetSaveStateFileName(entry->serial.c_str(), entry->crc, 10);
+			QFileInfo fi(saveStateFile.c_str());
+			if (fi.exists())
+			{
+				startGameListEntry(entry, std::optional<s32>(10));
+				return;
+			}
+		}	
+	}
+
+
+	if (cancelresume)
+		return;
 
 	// only resume if the option is enabled, and we have one for this game
 	startGameListEntry(*entry, resume.value() ? std::optional<s32>(-1) : std::optional<s32>(), std::nullopt);
@@ -3225,6 +3244,7 @@ void MainWindow::openVideoCaptureFolder(const GameList::Entry& entry)
 
 std::optional<bool> MainWindow::promptForResumeState(const QString& save_state_path)
 {
+	Console.WriteLn("Prompt For Resume");
 	if (save_state_path.isEmpty())
 		return false;
 
