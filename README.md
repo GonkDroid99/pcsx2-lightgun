@@ -10,7 +10,11 @@
 A custom build of PCSX2 made for LightGun Games
 Only for guncon2 games, It will not solve the issue for Silent Scope.
 Priorize US versions of games, EU will work, but some will have less features (recoil), miss some interesting patch...
+<<<<<<< HEAD
 >>>>>>> d3ab751c5 (update readme)
+=======
+GunCon must be configured in joystick mode using relative aiming.
+>>>>>>> fad140d19 (update readme)
 
 Game Specific notes :
 For 2 player Vampire Night, i had issue with calibrating 2nd gun, so you need to boot with gun 2 off, and activate it once in game.
@@ -27,6 +31,7 @@ ChangeLog :
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ## System Requirements
 
 PCSX2 supports Windows, Linux, and Mac platforms. Our [setup documentation page](https://pcsx2.net/docs/setup/requirements) contains additional details on software and hardware requirements.
@@ -40,3 +45,20 @@ PCSX2 supports translation into other languages using [Crowdin](https://crowdin.
 See the [Contribution Guide](https://pcsx2.net/docs/contributing/) for more info on how to contribute.
 =======
 >>>>>>> d3ab751c5 (update readme)
+=======
+About the per-game reshade fix.
+You need to have a default profile nammed DefaultReshadePreset (and so, a DefaultReshadePreset.ini in your pcsx folder).
+Game specific profile must be nammed with the game serial, like SCES-50300.ini
+Can be use to apply per game bezel or use certain effect on a game basis, like for exemple, i use EyeAdaption shader to reduce the gun flash of game that do not have a patch to remove it.
+(https://github.com/brussell1/Shaders/blob/master/Shaders/EyeAdaption.fx)
+
+Other stuff related to pcsx2 : 
+I've made a no-smoke patch for Time Crisis 2 if you want, i do not include it by default, because the smoke is not a bug, so it's up to personal preference.
+https://github.com/nixxou/pcsx2/releases/download/V1.0/optional_NOSMOKE-Patch-TimeCrisis2.zip
+
+Don't forget there is HD texture pack for some of the games : 
+Resident Evil Dead Aim : https://gbatemp.net/threads/resident-evil-dead-aim-hd-textures.649199/
+Vampire Night : https://gbatemp.net/threads/vampire-night-hd-texture-pack.643864/
+Time Crisis Crisis Zone : https://gbatemp.net/threads/time-crisis-crisis-zone-hd-texture-pack.643871/
+Time Crisis 2 : https://gbatemp.net/threads/my-ps2-packs.621422/
+>>>>>>> fad140d19 (update readme)
