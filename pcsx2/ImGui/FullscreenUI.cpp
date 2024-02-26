@@ -1532,12 +1532,12 @@ void FullscreenUI::DrawExitWindow()
 	}
 	else
 	{
-<<<<<<< HEAD
+
 		SetFullscreenFooterText(std::array{
 			std::make_pair(ICON_PF_ARROW_LEFT ICON_PF_ARROW_RIGHT, FSUI_VSTR("Navigate")),
 			std::make_pair(ICON_PF_ENTER, FSUI_VSTR("Select")),
 			std::make_pair(ICON_PF_ESC, FSUI_VSTR("Back")),
-=======
+
 		MenuButton(FSUI_ICONSTR(ICON_FA_BAN, "Cannot show details for games which were not scanned in the game list."), "");
 	}
 
@@ -3100,6 +3100,19 @@ void FullscreenUI::DrawSaveStateSelector(bool is_loading)
 {
 	ImGuiIO& io = ImGui::GetIO();
 
+	bool reduceSize = (EmuConfig.CurrentAspectRatio == AspectRatioType::R4_3 || EmuConfig.CurrentAspectRatio == AspectRatioType::RAuto4_3_3_2);
+	float minsize = 0.0f;
+	float aspectRatio = 1;
+	if (reduceSize)
+	{
+		aspectRatio = (4.0f / 3.0f);
+		if (EmuConfig.CurrentAspectRatio == AspectRatioType::RAuto4_3_3_2 && GSgetDisplayMode() == GSVideoMode::SDTV_480P)
+		{
+			aspectRatio = (3.0f / 2.0f);
+		}
+		minsize = (io.DisplaySize.x - (io.DisplaySize.y * aspectRatio)) / 2.0f;
+	}
+
 	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
 	ImGui::SetNextWindowSize(io.DisplaySize - LayoutScale(0.0f, LAYOUT_FOOTER_HEIGHT));
 
@@ -3174,7 +3187,7 @@ void FullscreenUI::DrawSaveStateSelector(bool is_loading)
 		const float item_height = (style.FramePadding.y * 2.0f) + image_height + title_spacing + g_large_font.second + summary_spacing +
 								  g_medium_font.second;
 		const ImVec2 item_size(item_width, item_height);
-		const u32 grid_count_x = std::floor(ImGui::GetWindowWidth() / item_width_with_spacing);
+		const u32 grid_count_x = std::floor((ImGui::GetWindowWidth() - (minsize*2)) / item_width_with_spacing);
 		const float start_x =
 			(static_cast<float>(ImGui::GetWindowWidth()) - (item_width_with_spacing * static_cast<float>(grid_count_x))) * 0.5f;
 

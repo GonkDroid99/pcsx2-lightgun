@@ -125,6 +125,7 @@ namespace usb_lightgun
 		explicit GunCon2State(u32 port_);
 		~GunCon2State();
 		void SetTrigggerState(bool on);
+		void SendComMessage(const std::string& message);
 		USBDevice dev{};
 		USBDesc desc{};
 		USBDescDevice desc_dev{};
@@ -187,6 +188,7 @@ namespace usb_lightgun
 		int lastOther1 = 0;
 		int lastOther2 = 0;
 		bool fullAutoActive = false;
+		bool twoplayerfix = false;
 		float m_gun4irComPort = 0;
 		int gun4irComPort = 0;
 		HANDLE serialPort;
@@ -375,9 +377,27 @@ namespace usb_lightgun
 
 	GunCon2State::~GunCon2State()
 	{
-		active_game = "";
-		quitThread = true;
+		if (myThread != nullptr)
+		{
+			if (serialPort != INVALID_HANDLE_VALUE)
+			{
+				GunCon2State::SendComMessage("E");
+				CloseHandle(serialPort);
+				serialPort = INVALID_HANDLE_VALUE;
+			}
+			active_game = "";
+			quitThread = true;
+			myThread->join();
+		}
+		if (myThreadAutoConfigure != nullptr)
+		{
+			quitThread = true;
+			myThreadAutoConfigure->join();
+		}
+
+		
 		Console.WriteLn("NIXX : GunCon2State -> Destroy");
+
 	}
 
 	void GunCon2State::SetTrigggerState(bool on)
@@ -400,10 +420,72 @@ namespace usb_lightgun
 		}
 	}
 
+	void GunCon2State::SendComMessage(const std::string& message)
+	{
+		if (serialPort != INVALID_HANDLE_VALUE)
+		{
+			DWORD bytesWritten;
+			DWORD messageLength = static_cast<DWORD>(message.length());
+			WriteFile(serialPort, message.c_str(), messageLength, &bytesWritten, NULL);
+		}
+	}
+
 	void GunCon2State::threadOutputs()
 	{
 		threadOutputLoaded = true;
 		Console.WriteLn("THREAD : Thread Start");
+
+		if (active_game != "")
+		{
+			bool validcom = false;
+			if (gun4irComPort > 0)
+			{
+				validcom = true;
+				std::string serialPortName = "COM" + std::to_string(gun4irComPort);
+				if (gun4irComPort >= 10)
+				{
+					serialPortName = "\\\\.\\COM" + std::to_string(gun4irComPort);
+				}
+				serialPort = CreateFileA(serialPortName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+					FILE_ATTRIBUTE_NORMAL, NULL);
+
+				if (serialPort == INVALID_HANDLE_VALUE)
+				{
+					validcom = false;
+				}
+				if (validcom)
+				{
+					DCB dcbSerialParams = {0};
+					dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+
+					if (!GetCommState(serialPort, &dcbSerialParams))
+					{
+						validcom = false;
+					}
+					if (validcom)
+					{
+						dcbSerialParams.BaudRate = 9600;
+						dcbSerialParams.ByteSize = 8;
+						dcbSerialParams.StopBits = ONESTOPBIT;
+						dcbSerialParams.Parity = NOPARITY;
+					}
+					if (!SetCommState(serialPort, &dcbSerialParams))
+					{
+						validcom = false;
+					}
+				}
+			}
+			if (validcom)
+			{
+				GunCon2State::SendComMessage("S6");
+			}
+			else
+			{
+				serialPort = INVALID_HANDLE_VALUE;
+			}
+		}
+
+
 		while (VMManager::HasValidVM() && active_game != "" && !quitThread)
 		{
 			std::chrono::microseconds::rep timestamp =
@@ -411,7 +493,8 @@ namespace usb_lightgun
 					.count();
 			std::string output_signal = "";
 
-			if (active_game == "SLES-50930") //Dino Stalker (E, English)
+			//Dino Stalker (E, English)
+			if (active_game == "SLES-50930") 
 			{
 				bool valid_query = false;
 				u8 ammoFirst = 0;
@@ -436,7 +519,8 @@ namespace usb_lightgun
 				}
 			}
 
-			if (active_game == "SLES-51095") //Dino Stalker (E, French)
+			//Dino Stalker (E, French)
+			if (active_game == "SLES-51095") 
 			{
 				bool valid_query = false;
 				u8 ammoFirst = 0;
@@ -460,7 +544,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-			if (active_game == "SLUS-20485") //Dino Stalker (USA)
+			//Dino Stalker (USA)
+			if (active_game == "SLUS-20485") 
 			{
 				bool valid_query = false;
 				u8 ammoFirst = 0;
@@ -484,7 +569,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-			if (active_game == "SLUS-20389") //EndGame US
+			//EndGame US
+			if (active_game == "SLUS-20389") 
 			{
 				bool valid_query = false;
 				u32 PointerAmmo = 0;
@@ -513,8 +599,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLPM-65139") //Gun Survivor 3: Dino Crisis (J)
+			//Gun Survivor 3: Dino Crisis (J)
+			if (active_game == "SLPM-65139") 
 			{
 				bool valid_query = false;
 				u8 ammoFirst = 0;
@@ -538,8 +624,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLES-52620") //Guncom 2 (E)
+			//Guncom 2 (E)
+			if (active_game == "SLES-52620") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -564,8 +650,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLES-51289") //Gunfighter 2 - Jesse James (E)
+			//Gunfighter 2 - Jesse James (E)
+			if (active_game == "SLES-51289") 
 			{
 				bool valid_query = false;
 				u32 PointerAmmo = 0;
@@ -597,8 +683,8 @@ namespace usb_lightgun
 				}
 			}
 
-
-			if (active_game == "SLPS-25165") //Gunvari Collection (J) (480i) : Only time crisis
+			//Gunvari Collection (J) (480i) : Only time crisis
+			if (active_game == "SLPS-25165") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -618,8 +704,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLUS-20492") //Ninja Assault (U)
+			//Ninja Assault (U)
+			if (active_game == "SLUS-20492") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -645,8 +731,8 @@ namespace usb_lightgun
 				}
 			}
 
-
-			if (active_game == "SLES-50650") //Resident Evil Survivor 2 (E)
+			//Resident Evil Survivor 2 (E)
+			if (active_game == "SLES-50650") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -666,8 +752,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLUS-20669") //Resident Evil Dead Aim US
+			//Resident Evil Dead Aim US
+			if (active_game == "SLUS-20669") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -687,8 +773,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLES-51617") //Starsky & Hutch (E)
+			//Starsky & Hutch (E)
+			if (active_game == "SLES-51617") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -708,8 +794,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLUS-20619") //Starsky & Hutch (U)
+			//Starsky & Hutch (U)
+			if (active_game == "SLUS-20619") 
 			{
 				bool valid_query = false;
 				u8 ammoCount = 0;
@@ -729,11 +815,14 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SCES-50300") //Time Crisis 2 EU
+			//Time Crisis 2 EU
+			if (active_game == "SCES-50300") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
+
+				twoplayerfix = memRead8(0x65CD24) == 1 ? true : false;
+
 				if (port == 0)
 				{
 					valid_query = true;
@@ -754,11 +843,14 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-
-			if (active_game == "SLUS-20219") //Time Crisis 2 US
+			//Time Crisis 2 US
+			if (active_game == "SLUS-20219") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
+
+				twoplayerfix = memRead8(0x63EE64) == 1 ? true : false;
+
 				if (port == 0)
 				{
 					valid_query = true;
@@ -780,12 +872,15 @@ namespace usb_lightgun
 				}
 			}
 
-
-			if (active_game == "SCES-51844") //Time Crisis 3 EU
+			//Time Crisis 3 EU
+			if (active_game == "SCES-51844") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
 				u32 weaponType = 0;
+
+				twoplayerfix = memRead8(0x474EEC) == 1 ? true : false;
+
 				if (port == 0)
 				{
 					valid_query = true;
@@ -808,12 +903,15 @@ namespace usb_lightgun
 					lastWeapon = weaponType;
 				}
 			}
-
-			if (active_game == "SLUS-20645") //Time Crisis 3 US
+			//Time Crisis 3 US
+			if (active_game == "SLUS-20645") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
 				u32 weaponType = 0;
+
+				twoplayerfix = memRead8(0x43A16C) == 1 ? true : false;
+
 				if (port == 0)
 				{
 					valid_query = true;
@@ -836,8 +934,8 @@ namespace usb_lightgun
 					lastWeapon = weaponType;
 				}
 			}
-
-			if (active_game == "SLUS-20927") //Time Crisis Crisis Zone US
+			//Time Crisis Crisis Zone US
+			if (active_game == "SLUS-20927") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
@@ -864,8 +962,8 @@ namespace usb_lightgun
 					lastWeapon = weaponType;
 				}
 			}
-
-			if (active_game == "SLUS-20221") //Vampire Night (U)
+			//Vampire Night (U)
+			if (active_game == "SLUS-20221") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
@@ -888,8 +986,8 @@ namespace usb_lightgun
 					lastAmmo = ammoCount;
 				}
 			}
-			
-			if (active_game == "SLES-51229") //Virtua Cop Elite Edition
+			//Virtua Cop Elite Edition
+			if (active_game == "SLES-51229") 
 			{
 				bool valid_query = false;
 				u32 ammoCount = 0;
@@ -1005,22 +1103,37 @@ namespace usb_lightgun
 				{
 					Console.WriteLn("GUN B : SHOT (%lld)", diffgunshot);
 				}
-				/*
+				
 				if (serialPort != INVALID_HANDLE_VALUE)
 				{
-					GunCon::SendComMessage("F0x2x0x");
+					GunCon2State::SendComMessage("F0x2x0x");
 				}
-				*/
+				
 				MameHookerProxy::GetInstance().Gunshot(port);
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+		if (serialPort != INVALID_HANDLE_VALUE)
+		{
+			GunCon2State::SendComMessage("E");
+			CloseHandle(serialPort);
+			serialPort = INVALID_HANDLE_VALUE;
 		}
 		Console.WriteLn("THREAD : Thread stop");
 	}
 
 	void GunCon2State::threadAutoConfigure()
 	{
+
+		std::vector<std::string> liste_ids_recoil = {
+			"SLES-50930", "SLES-51095", "SLUS-20485", "SLUS-20389", "SLPM-65139",
+			"SLES-52620", "SLES-51289", "SLPS-25165", "SLUS-20492", "SLES-50650",
+			"SLUS-20669", "SLES-51617", "SLUS-20619", "SCES-50300", "SLUS-20219",
+			"SCES-51844", "SLUS-20645", "SLUS-20927", "SLUS-20221", "SLES-51229"
+		};
+
+
 		int i = 0;
 		while (threadOutputLoaded == false)
 		{
@@ -1037,6 +1150,19 @@ namespace usb_lightgun
 				if (serial != "" && active_game == "" && VMManager::HasValidVM())
 				{
 					active_game = serial;
+
+					bool id_present = false;
+					for (const std::string& id : liste_ids_recoil)
+					{
+						if (id == active_game)
+						{
+							id_present = true;
+							break;
+						}
+					}
+					if (id_present == false)
+						return;
+
 					myThread = new std::thread(&GunCon2State::threadOutputs, this);
 					//AutoConfigure();
 					return;
@@ -1053,12 +1179,13 @@ namespace usb_lightgun
 		std::string serial = VMManager::GetDiscSerial();
 		
 		Console.WriteLn("NIXX : GunCon2State -> Start GunCon %d for %s", port, serial.c_str());
-
+		/*
 		if (active_game == "" && serial != "")
 		{
 			active_game = serial;
 			myThread = new std::thread(&GunCon2State::threadOutputs, this);
 		}
+		*/
 		
 
 
@@ -1094,7 +1221,7 @@ namespace usb_lightgun
 		//Apply aim adjustement for 2 players TimeCrisis if Widescreen on
 		float pointer_x2 = pointer_x;
 		float pointer_y2 = pointer_y;
-		if ((active_game == "SLUS-20219" || active_game == "SCES-50300" || active_game == "SCES-51844" || active_game == "SLUS-20645") && EmuConfig.CurrentAspectRatio == AspectRatioType::R16_9)
+		if ((active_game == "SLUS-20219" || active_game == "SCES-50300" || active_game == "SCES-51844" || active_game == "SLUS-20645") && twoplayerfix)// && EmuConfig.CurrentAspectRatio == AspectRatioType::R16_9)
 		{
 			if (active_game == "SLUS-20219")
 			{
@@ -1339,6 +1466,7 @@ namespace usb_lightgun
 		GunCon2State* s = USB_CONTAINER_OF(dev, GunCon2State, dev);
 
 		s->custom_config = USB::GetConfigBool(si, s->port, TypeName(), "custom_config", false);
+		s->gun4irComPort = USB::GetConfigInt(si, s->port, TypeName(), "Gun4IRComPort", 0);
 
 		// Don't override auto config if we've set it.
 		if (!s->auto_config_done || s->custom_config)
@@ -1477,6 +1605,9 @@ namespace usb_lightgun
 				TRANSLATE_NOOP("USB", "Applies a color to the chosen crosshair images, can be used for multiple "
 									  "players. Specify in HTML/CSS format (e.g. #aabbcc)"),
 				"#ffffff"},
+			{SettingInfo::Type::Integer, "Gun4IRComPort", TRANSLATE_NOOP("USB", "Gun4Ir Com port"),
+				TRANSLATE_NOOP("USB", "Com port to enable recoil, 0=disabled"), "0", "0", "99", "1", TRANSLATE_NOOP("USB", "%d COM"),
+				nullptr, nullptr, 1.0f},
 			{SettingInfo::Type::Boolean, "custom_config", TRANSLATE_NOOP("USB", "Manual Screen Configuration"),
 				TRANSLATE_NOOP("USB",
 					"Forces the use of the screen parameters below, instead of automatic parameters if available."),
