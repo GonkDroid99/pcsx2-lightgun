@@ -1169,6 +1169,17 @@ void VMManager::UpdateDiscDetails(bool booting)
 
 
 	Console.WriteLn("NIXX : BOOT GAME %s", s_disc_serial);
+<<<<<<< HEAD
+=======
+	if (EmuConfig.SindenRecoil)
+	{
+		MameHookerProxy::GetInstance().useSindenRecoil = true;
+	}
+	else
+	{
+		MameHookerProxy::GetInstance().useSindenRecoil = false;
+	}
+>>>>>>> ea6d4a212 (siden recoil groundwork)
 
 	if (EmuConfig.EnableMameHooker)
 	{
