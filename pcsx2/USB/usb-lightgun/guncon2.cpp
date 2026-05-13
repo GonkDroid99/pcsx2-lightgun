@@ -18,7 +18,13 @@
 #include "common/StringUtil.h"
 
 #include <tuple>
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+#endif
 #include "Memory.h"
 #include "MameHookerProxy.h"
 
@@ -191,7 +197,11 @@ namespace usb_lightgun
 		bool twoplayerfix = false;
 		float m_gun4irComPort = 0;
 		int gun4irComPort = 0;
-		HANDLE serialPort;
+#ifdef _WIN32
+		HANDLE serialPort = INVALID_HANDLE_VALUE;
+#else
+		int serialPort = -1;
+#endif
 
 		void AutoConfigure();
 
@@ -379,12 +389,21 @@ namespace usb_lightgun
 	{
 		if (myThread != nullptr)
 		{
+#ifdef _WIN32
 			if (serialPort != INVALID_HANDLE_VALUE)
 			{
 				GunCon2State::SendComMessage("E");
 				CloseHandle(serialPort);
 				serialPort = INVALID_HANDLE_VALUE;
 			}
+#else
+			if (serialPort != -1)
+			{
+				GunCon2State::SendComMessage("E");
+				close(serialPort);
+				serialPort = -1;
+			}
+#endif
 			active_game = "";
 			quitThread = true;
 			myThread->join();
@@ -422,12 +441,17 @@ namespace usb_lightgun
 
 	void GunCon2State::SendComMessage(const std::string& message)
 	{
+#ifdef _WIN32
 		if (serialPort != INVALID_HANDLE_VALUE)
 		{
 			DWORD bytesWritten;
 			DWORD messageLength = static_cast<DWORD>(message.length());
 			WriteFile(serialPort, message.c_str(), messageLength, &bytesWritten, NULL);
 		}
+#else
+		if (serialPort != -1)
+			write(serialPort, message.c_str(), message.length());
+#endif
 	}
 
 	void GunCon2State::threadOutputs()
@@ -441,14 +465,12 @@ namespace usb_lightgun
 			if (gun4irComPort > 0)
 			{
 				validcom = true;
+#ifdef _WIN32
 				std::string serialPortName = "COM" + std::to_string(gun4irComPort);
 				if (gun4irComPort >= 10)
-				{
 					serialPortName = "\\\\.\\COM" + std::to_string(gun4irComPort);
-				}
 				serialPort = CreateFileA(serialPortName.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
 					FILE_ATTRIBUTE_NORMAL, NULL);
-
 				if (serialPort == INVALID_HANDLE_VALUE)
 				{
 					validcom = false;
@@ -457,11 +479,8 @@ namespace usb_lightgun
 				{
 					DCB dcbSerialParams = {0};
 					dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
-
 					if (!GetCommState(serialPort, &dcbSerialParams))
-					{
 						validcom = false;
-					}
 					if (validcom)
 					{
 						dcbSerialParams.BaudRate = 9600;
@@ -470,10 +489,33 @@ namespace usb_lightgun
 						dcbSerialParams.Parity = NOPARITY;
 					}
 					if (!SetCommState(serialPort, &dcbSerialParams))
+						validcom = false;
+				}
+#else
+				std::string serialPortName = "/dev/ttyUSB" + std::to_string(gun4irComPort - 1);
+				serialPort = open(serialPortName.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
+				if (serialPort == -1)
+				{
+					validcom = false;
+				}
+				if (validcom)
+				{
+					struct termios tty = {};
+					if (tcgetattr(serialPort, &tty) != 0)
 					{
 						validcom = false;
 					}
+					else
+					{
+						cfsetospeed(&tty, B9600);
+						cfsetispeed(&tty, B9600);
+						tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;
+						tty.c_cflag &= ~PARENB;
+						tty.c_cflag &= ~CSTOPB;
+						tcsetattr(serialPort, TCSANOW, &tty);
+					}
 				}
+#endif
 			}
 			if (validcom)
 			{
@@ -481,7 +523,11 @@ namespace usb_lightgun
 			}
 			else
 			{
+#ifdef _WIN32
 				serialPort = INVALID_HANDLE_VALUE;
+#else
+				if (serialPort != -1) { close(serialPort); serialPort = -1; }
+#endif
 			}
 		}
 
@@ -1104,22 +1150,37 @@ namespace usb_lightgun
 					Console.WriteLn("GUN B : SHOT (%lld)", diffgunshot);
 				}
 				
-				if (serialPort != INVALID_HANDLE_VALUE)
+				if (
+#ifdef _WIN32
+					serialPort != INVALID_HANDLE_VALUE
+#else
+					serialPort != -1
+#endif
+				)
 				{
 					GunCon2State::SendComMessage("F0x2x0x");
 				}
-				
+
 				MameHookerProxy::GetInstance().Gunshot(port);
 			}
 
 			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
+#ifdef _WIN32
 		if (serialPort != INVALID_HANDLE_VALUE)
 		{
 			GunCon2State::SendComMessage("E");
 			CloseHandle(serialPort);
 			serialPort = INVALID_HANDLE_VALUE;
 		}
+#else
+		if (serialPort != -1)
+		{
+			GunCon2State::SendComMessage("E");
+			close(serialPort);
+			serialPort = -1;
+		}
+#endif
 		Console.WriteLn("THREAD : Thread stop");
 	}
 

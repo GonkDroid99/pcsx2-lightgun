@@ -1169,16 +1169,6 @@ void VMManager::UpdateDiscDetails(bool booting)
 
 
 	Console.WriteLn("NIXX : BOOT GAME %s", s_disc_serial);
-<<<<<<< HEAD
-=======
-	if (EmuConfig.SindenRecoil)
-	{
-		MameHookerProxy::GetInstance().useSindenRecoil = true;
-	}
-	else
-	{
-		MameHookerProxy::GetInstance().useSindenRecoil = false;
-	}
 >>>>>>> ea6d4a212 (siden recoil groundwork)
 
 	if (EmuConfig.EnableMameHooker)
@@ -1197,12 +1187,8 @@ void VMManager::UpdateDiscDetails(bool booting)
 		if (FileSystem::FileExists(ReshadeFile.c_str()) && FileSystem::FileExists(ReshadeDefault.c_str()))
 		{
 			if (FileSystem::FileExists(ReshadeGame.c_str()))
-			{
-
 				WritePrivateProfileStringA("GENERAL", "PresetPath", ReshadeGame.c_str(), ReshadeFile.c_str());
-			}
 			else
-			{
 				WritePrivateProfileStringA("GENERAL", "PresetPath", ReshadeDefault.c_str(), ReshadeFile.c_str());
 			}
 		}

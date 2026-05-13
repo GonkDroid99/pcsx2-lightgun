@@ -1359,7 +1359,7 @@ struct Pcsx2Config
 		UseSavestateSelector : 1,
 		EnableMameHooker : 1,
 		AutoBootSaveStateTen : 1,
-		SindenRecoil : 1,
+		//SindenRecoil : 1, // Not needed Sinden was never finished by nixxou
 		InhibitScreensaver : 1,
 		BackupSavestate : 1,
 		ManuallySetRealTimeClock : 1, // passes user-set real-time clock information to cdvd at startup

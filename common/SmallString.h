@@ -178,7 +178,8 @@ public:
 	__fi const char* end_ptr() const { return m_buffer + m_length; }
 
 	// STL adapters
-	__fi void push_back(value_type val) { append(val); }
+	__fi void push_back(const value_type& val) { append(val); }
+	__fi void push_back(value_type&& val) { append(val); }
 
 	// returns a string view for this string
 	std::string_view view() const;

@@ -1,5 +1,7 @@
 include(CopyBaseTranslations)
 
+find_package(Qt6 REQUIRED COMPONENTS Widgets Gui GuiPrivate)
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -296,6 +298,7 @@ target_link_libraries(pcsx2-qt PRIVATE
 	PCSX2
 	Qt6::Core
 	Qt6::Gui
+	Qt6::GuiPrivate
 	Qt6::Widgets
 	KDAB::kddockwidgets
 )

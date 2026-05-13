@@ -124,6 +124,8 @@ InterfaceSettingsWidget::InterfaceSettingsWidget(SettingsWindow* settings_dialog
 		m_ui.mouseLock->setEnabled(false);
 	}
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.enableMameHooker, "EmuCore", "EnableMameHooker", false);
+	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.autoBootSaveStateTen, "EmuCore", "AutoBootSaveStateTen", false);
+	// SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.sindenRecoil, "EmuCore", "SindenRecoil", false); // Not needed Sinden was never finished by nixxou
 
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.startFullscreen, "UI", "StartFullscreen", false);
 	SettingWidgetBinder::BindWidgetToBoolSetting(sif, m_ui.doubleClickTogglesFullscreen, "UI", "DoubleClickTogglesFullscreen", true);
@@ -222,13 +224,18 @@ InterfaceSettingsWidget::InterfaceSettingsWidget(SettingsWindow* settings_dialog
 	dialog()->registerWidgetHelp(
 		m_ui.mouseLock, tr("Enable Mouse Lock"), tr("Unchecked"),
 		tr("Locks the mouse cursor to the windows when PCSX2 is in focus and all other windows are closed.<br><b>Unavailable on Linux Wayland.</b><br><b>Requires accessibility permissions on macOS.</b>"));
-	dialog()->registerWidgetHelp(
-		m_ui.doubleClickTogglesFullscreen, tr("Double-Click Toggles Fullscreen"), tr("Checked"),
 	dialog->registerWidgetHelp(
 		m_ui.enableMameHooker, tr("Enable MameHooker"), tr("Unchecked"),
 		tr("Enable MameHooker, it's advised to use gun4ir com instead if you can."));
-	dialog()->registerWidgetHelp(
-		m_ui.disableWindowResizing, tr("Disable Window Resizing"), tr("Unchecked"),
+	dialog->registerWidgetHelp(
+		m_ui.autoBootSaveStateTen, tr("AutoBoot SaveState 10"), tr("Unchecked"),
+		tr("AutoBoot SaveState 10"));
+
+	dialog->registerWidgetHelp(
+		m_ui.doubleClickTogglesFullscreen, tr("Double-Click Toggles Fullscreen"), tr("Checked"), 
+		tr("Allows switching in and out of fullscreen mode by double-clicking the game window."));
+	dialog->registerWidgetHelp(
+		m_ui.disableWindowResizing, tr("Disable Window Resizing"), tr("Unchecked"), 
 		tr("Prevents the main window from being resized."));
 	dialog()->registerWidgetHelp(
 		m_ui.startFullscreenUI, tr("Start Big Picture Mode"), tr("Unchecked"),
