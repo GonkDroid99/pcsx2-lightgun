@@ -1,3 +1,42 @@
+# Linux Port/update of Nixxou's Lightgun Build of PCSX2
+
+Credits go to Nixxou for his orignal work on this.
+
+What's Changed?
+
+- Nixxou's MameOutputProxy has been reworked for linux.
+The main difference now is this should compile for both Linux and Windows and Nixxou wrote MameOutputSender for windows with no universal support. 
+
+I have removed functions that are not used and split everything up so there are a Linux and Windows Version for each functions as it relies on some Windows specific code.
+Sinden Recoil implementations has been removed as it was never really finished and I didn't see much point in keeping it as there are better options for Sinden Support via tools Like Hook of the reaper and various other MameHooker replacements.
+
+Some fixes for linux in general.
+
+Build instructions for Linux
+
+
+Configure cmake config with 
+
+cmake -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+-DCMAKE_EXE_LINKER_FLAGS_INIT="-fuse-ld=lld" \
+-DCMAKE_MODULE_LINKER_FLAGS_INIT="-fuse-ld=lld" \
+-DCMAKE_SHARED_LINKER_FLAGS_INIT="-fuse-ld=lld" \
+-GNinja
+
+
+Build with:
+
+ninja -C build
+
+
+
+
+This should build on both linux and windows though I have not tested windows. 
+
+Nixxou's initial read me below. 
+
+
+
 # PCSX2 LightGun Edition
 
 <<<<<<< HEAD
