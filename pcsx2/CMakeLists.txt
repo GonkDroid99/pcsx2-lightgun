@@ -136,8 +136,13 @@ set(pcsx2Sources
 	VUflags.cpp
 	VUmicroMem.cpp
 	VUops.cpp
-	MameHookerProxy.cpp
 )
+
+if(WIN32)
+	target_sources(PCSX2 PRIVATE MameHookerProxy_win.cpp)
+else()
+	target_sources(PCSX2 PRIVATE MameHookerProxy_lnx.cpp)
+endif()
 
 # Main pcsx2 header
 set(pcsx2Headers

@@ -2,8 +2,8 @@ function(detect_operating_system)
 	message(STATUS "CMake Version: ${CMAKE_VERSION}")
 	message(STATUS "CMake System Name: ${CMAKE_SYSTEM_NAME}")
 
-	# LINUX wasn't added until CMake 3.25.
-	if (CMAKE_VERSION VERSION_LESS 3.25.0 AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+	# LINUX wasn't added until CMake 3.25, and may not be set in some cross-compile toolchain environments.
+	if (NOT LINUX AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		# Have to make it visible in this scope as well for below.
 		set(LINUX TRUE PARENT_SCOPE)
 		set(LINUX TRUE)
@@ -13,7 +13,7 @@ function(detect_operating_system)
 		message(STATUS "Building for Windows.")
 	elseif(APPLE AND NOT IOS)
 		message(STATUS "Building for MacOS.")
-	elseif(LINUX)
+	elseif(LINUX OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		message(STATUS "Building for Linux.")
 	elseif(BSD)
 		message(STATUS "Building for *BSD.")
