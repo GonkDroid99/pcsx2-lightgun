@@ -2648,7 +2648,6 @@ void FullscreenUI::DoLoadInputProfile()
 			SetSettingsChanged(dsi);
 			ShowToast(std::string(), fmt::format(FSUI_FSTR("Input profile '{}' loaded."), title));
 			CloseChoiceDialog();
->>>>>>> 40babb109 (mamehooker support)
 		});
 	}
 }
