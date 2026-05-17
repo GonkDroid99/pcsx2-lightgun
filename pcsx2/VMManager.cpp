@@ -1168,7 +1168,7 @@ void VMManager::UpdateDiscDetails(bool booting)
 
 
 
-	Console.WriteLn("NIXX : BOOT GAME %s", s_disc_serial);
+	Console.WriteLn("NIXX : BOOT GAME %s", s_disc_serial.c_str());
 
 
 	if (EmuConfig.EnableMameHooker)

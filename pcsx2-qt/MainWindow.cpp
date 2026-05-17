@@ -1566,7 +1566,7 @@ void MainWindow::onGameListEntryActivated()
 			QFileInfo fi(saveStateFile.c_str());
 			if (fi.exists())
 			{
-				startGameListEntry(entry, std::optional<s32>(10));
+				startGameListEntry(*entry, std::optional<s32>(10));
 				return;
 			}
 		}	

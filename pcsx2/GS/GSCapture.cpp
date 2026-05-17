@@ -675,7 +675,6 @@ bool GSCapture::BeginCapture(float fps, GSVector2i recommendedResolution, float 
 		const s32 sample_rate = SPU2::GetConsoleSampleRate();
 		s_audio_codec_context->codec_type = AVMEDIA_TYPE_AUDIO;
 		s_audio_codec_context->bit_rate = GSConfig.AudioCaptureBitrate * 1000;
-		av_channel_layout_default(&s_audio_codec_context->ch_layout, AUDIO_CHANNELS);
 		s_audio_codec_context->sample_fmt = AV_SAMPLE_FMT_S16;
 		s_audio_codec_context->sample_rate = sample_rate;
 		s_audio_codec_context->time_base = {1, sample_rate};
@@ -777,7 +776,7 @@ bool GSCapture::BeginCapture(float fps, GSVector2i recommendedResolution, float 
 		}
 
 		s_converted_audio_frame->format = s_audio_codec_context->sample_fmt;
-		av_channel_layout_copy(&s_converted_audio_frame->ch_layout, &s_audio_codec_context->ch_layout);
+		wrap_av_channel_layout_copy(&s_converted_audio_frame->ch_layout, &s_audio_codec_context->ch_layout);
 		s_converted_audio_frame->nb_samples = s_audio_frame_size;
 		res = wrap_av_frame_get_buffer(s_converted_audio_frame, 0);
 		if (res < 0)
