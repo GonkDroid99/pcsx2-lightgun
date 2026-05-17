@@ -1169,7 +1169,7 @@ void VMManager::UpdateDiscDetails(bool booting)
 
 
 	Console.WriteLn("NIXX : BOOT GAME %s", s_disc_serial);
->>>>>>> ea6d4a212 (siden recoil groundwork)
+
 
 	if (EmuConfig.EnableMameHooker)
 	{
