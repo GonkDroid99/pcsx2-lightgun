@@ -2421,6 +2421,7 @@
     </ClInclude>
     <ClInclude Include="SIO\Pad\PadNegcon.h">
       <Filter>System\Ps2\Iop\SIO\PAD</Filter>
+    </ClInclude>
     <ClInclude Include="MameHookerProxy.h">
       <Filter>Tools</Filter>
     </ClInclude>
