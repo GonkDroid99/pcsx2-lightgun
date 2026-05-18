@@ -219,6 +219,3 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-
-      
-          TAG_VAL=${TAG_VAL} node index.js
