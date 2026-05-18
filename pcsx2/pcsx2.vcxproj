@@ -282,7 +282,7 @@
     <ClCompile Include="Input\XInputSource.cpp" />
     <ClCompile Include="IopGte.cpp" />
     <ClCompile Include="LayeredSettingsInterface.cpp" />
-    <ClCompile Include="MameHookerProxy.cpp" />
+    <ClCompile Include="MameHookerProxy_win.cpp" />
     <ClCompile Include="PINE.cpp" />
     <ClCompile Include="FW.cpp" />
     <ClCompile Include="PerformanceMetrics.cpp" />
