@@ -52,16 +52,20 @@ public:
   
 
   static MameHookerProxy& GetInstance();
-  //static bool fileExists(const wchar_t* filePath);
-  // static void launchProgram(const char* programPath, PROCESS_INFORMATION& processInfo);
   static std::string getExecutableDirectory();
   void Init();
   void CloseGame();
   void Gunshot(int gunIndex);
   void SendState(std::string key, int value);
   void StartGame(std::string id);
+
+#ifdef _WIN32
+  bool writeToFd(HANDLE h, const std::string& msg);
+  HANDLE connectGunPipe(const std::string& pipeName);
+#else
   bool writeToFd(int fd, const std::string& msg);
   int connectGunPipe(const std::string& pipeName);
+#endif
 
 };
 

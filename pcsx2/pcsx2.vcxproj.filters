@@ -1451,7 +1451,8 @@
     </ClCompile>
     <ClCompile Include="GS\GSDrawingEnvironment.cpp">
       <Filter>System\Ps2\GS\Renderers\Software</Filter>
-    <ClCompile Include="MameHookerProxy.cpp">
+    </ClCompile>
+    <ClCompile Include="MameHookerProxy_win.cpp">
       <Filter>Tools</Filter>
     </ClCompile>
   </ItemGroup>

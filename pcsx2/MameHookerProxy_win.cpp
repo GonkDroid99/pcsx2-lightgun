@@ -2,32 +2,28 @@
 #include <string>
 #include <windows.h>
 #include <cstdio>
-#include <cerrno>
-#include <cstring>
-#include <sys/stat.h>
+#include <thread>
+#include <chrono>
 
 
 MameHookerProxy& MameHookerProxy::GetInstance()
 {
-  
   static MameHookerProxy s_instance;
   return s_instance;
 }
 
 
-
-bool MameHookerProxy::writeToFd(int fd, const std::string& msg)
+bool MameHookerProxy::writeToFd(HANDLE h, const std::string& msg)
 {
-  HANDLE h = reinterpret_cast<HANDLE>(static_cast<intptr_t>(fd));
   DWORD written;
   return WriteFile(h, msg.c_str(), static_cast<DWORD>(msg.size()), &written, NULL) != 0;
 }
 
-static void closeFd(int& fd)
+static void closeHandle(HANDLE& h)
 {
-  if (fd < 0) return;
-  CloseHandle(reinterpret_cast<HANDLE>(static_cast<intptr_t>(fd)));
-  fd = -1;
+  if (h == NULL || h == INVALID_HANDLE_VALUE) return;
+  CloseHandle(h);
+  h = NULL;
 }
 
 
@@ -43,25 +39,23 @@ std::string MameHookerProxy::getExecutableDirectory()
 
 // On Windows: connects to \\.\pipe\<name>
 
-int MameHookerProxy::connectGunPipe(const std::string& pipeName)
+HANDLE MameHookerProxy::connectGunPipe(const std::string& pipeName)
 {
-
-//Set pipe path and open return handle to a int, if fail -1
+  //Set pipe path and open return handle, if fail return NULL
   std::string path = "\\\\.\\pipe\\" + pipeName;
   HANDLE h = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-  return (h == INVALID_HANDLE_VALUE) ? -1 : (int)(intptr_t)h;
+  return (h == INVALID_HANDLE_VALUE) ? NULL : h;
 }
-
 
 
 void MameHookerProxy::Init()
 {
   pipeConnected = false;
-  hPipe = -1;
-  hPipeGunA = -1;
-  hPipeGunB = -1;
-  hPipeGunC = -1;
-  hPipeGunD = -1;
+  hPipe = NULL;
+  hPipeGunA = NULL;
+  hPipeGunB = NULL;
+  hPipeGunC = NULL;
+  hPipeGunD = NULL;
   processInfo = nullptr;
 }
 
@@ -69,10 +63,10 @@ void MameHookerProxy::CloseGame()
 {
   activeGame = "";
   active = false;
-  bool needForceClose = true; 
-    if (pipeConnected && hPipe >= 0)
+  bool needForceClose = true;
+    if (pipeConnected && hPipe != NULL)
     {
-      writeToFd(hPipe,"CLOSE");
+      writeToFd(hPipe, "CLOSE");
     }
 
   if (processInfo != nullptr)
@@ -88,12 +82,11 @@ void MameHookerProxy::CloseGame()
     processInfo = nullptr;
   }
 
-  closeFd(hPipeGunA);
-  closeFd(hPipeGunB);
-  closeFd(hPipeGunC);
-  closeFd(hPipeGunD);
-  closeFd(hPipe);
-
+  closeHandle(hPipeGunA);
+  closeHandle(hPipeGunB);
+  closeHandle(hPipeGunC);
+  closeHandle(hPipeGunD);
+  closeHandle(hPipe);
 
   pipeConnected = false;
   pipeConnectedGunA = false;
@@ -103,18 +96,12 @@ void MameHookerProxy::CloseGame()
 }
 
 
-
-
-
 void MameHookerProxy::Gunshot(int gunIndex)
 {
   std::string message = "1";
 
-
-
   if (!pipeConnected || !active)
     return;
-
 
     const char* pipeNames[] = {
     "MameHookerProxyRecoilGunA",
@@ -122,35 +109,27 @@ void MameHookerProxy::Gunshot(int gunIndex)
     "MameHookerProxyRecoilGunC",
     "MameHookerProxyRecoilGunD",
   };
-  int* fds[] = { &hPipeGunA, &hPipeGunB, &hPipeGunC, &hPipeGunD };
+  HANDLE* handles[] = { &hPipeGunA, &hPipeGunB, &hPipeGunC, &hPipeGunD };
   bool* connected[] = { &pipeConnectedGunA, &pipeConnectedGunB, &pipeConnectedGunC, &pipeConnectedGunD };
 
   if (gunIndex < 0 || gunIndex > 3) return;
 
   if (!*connected[gunIndex])
   {
-    closeFd(*fds[gunIndex]);
-    *fds[gunIndex] = connectGunPipe(pipeNames[gunIndex]);
-    *connected[gunIndex] = (*fds[gunIndex] >= 0);
+    closeHandle(*handles[gunIndex]);
+    *handles[gunIndex] = connectGunPipe(pipeNames[gunIndex]);
+    *connected[gunIndex] = (*handles[gunIndex] != NULL);
   }
 
   if (*connected[gunIndex])
   {
-    if (!writeToFd(*fds[gunIndex], "1"))
+    if (!writeToFd(*handles[gunIndex], "1"))
     {
-      closeFd(*fds[gunIndex]);
+      closeHandle(*handles[gunIndex]);
       *connected[gunIndex] = false;
     }
   }
-
-
-
 }
-
-
-
-
-
 
 
 void MameHookerProxy::SendState(std::string key, int value)
@@ -161,32 +140,27 @@ void MameHookerProxy::SendState(std::string key, int value)
   std::string message = key + ":" + std::to_string(value);
   if (!writeToFd(hPipe, message))
   {
-    closeFd(hPipe);
+    closeHandle(hPipe);
     hPipe = connectGunPipe("MameHookerProxyControl");
-    pipeConnected = (hPipe >= 0);
+    pipeConnected = (hPipe != NULL);
   }
 }
-
-
-
 
 
 void MameHookerProxy::StartGame(std::string id)
 {
   if (id == activeGame || id.empty())
     return;
-    
 
-
-    //setup variables
+  //setup variables
   activeGame = id;
   active = true;
 
-  closeFd(hPipe);
-  closeFd(hPipeGunA);
-  closeFd(hPipeGunB);
-  closeFd(hPipeGunC);
-  closeFd(hPipeGunD);
+  closeHandle(hPipe);
+  closeHandle(hPipeGunA);
+  closeHandle(hPipeGunB);
+  closeHandle(hPipeGunC);
+  closeHandle(hPipeGunD);
   pipeConnected = false;
   pipeConnectedGunA = false;
   pipeConnectedGunB = false;
@@ -196,10 +170,9 @@ void MameHookerProxy::StartGame(std::string id)
   std::string execDir = getExecutableDirectory();
   fprintf(stderr, "[MameHooker] execDir=%s\n", execDir.c_str());
 
+  //Original Windows
 
- //Orignal Windows
-
-  std::string exePath = execDir + "\\MameOutputSender.exe"; //
+  std::string exePath = execDir + "\\MameOutputSender.exe";
   std::string args =
     "gamename=\"" + id + "\" "
     "outputs=\"GunRecoil_P1,GunRecoil_P2,TriggerPress_P1,TriggerPress_P2\"";
@@ -221,35 +194,23 @@ void MameHookerProxy::StartGame(std::string id)
     }
   }
 
-  // Attempt to connect to the control pipe on a background thread 
+  // Attempt to connect to the control pipe on a background thread
   std::thread([this]() {
-    
 
     //try 50 times probably over kill
     for (int i = 0; i < 50 && active; ++i)
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-      std::string socketPath = "/tmp/CoreFxPipe_MameHookerProxyControl"; //set socketpath probably change name
-      struct stat st{};
-      //check socket path
-      bool exists = (stat(socketPath.c_str(), &st) == 0);
-
-
-      //print debug info
-      if (dbg) { fprintf(dbg, "[DS] attempt %d: socket exists=%d\n", i, (int)exists); fflush(dbg); }
-
       //Try to connect to the pipe with the name MameHookerProxyControl
-      int fd = connectGunPipe("MameHookerProxyControl");
-      if (fd >= 0)
+      HANDLE h = connectGunPipe("MameHookerProxyControl");
+      if (h != NULL)
       {
-        hPipe = fd;
+        hPipe = h;
         pipeConnected = true;
-        
         return;
       }
     }
-    
-  }).detach();
 
-  }
+  }).detach();
+}
