@@ -32,38 +32,29 @@ See the [Contribution Guide](https://pcsx2.net/docs/contributing/) for more info
 
 # Linux Port/update of Nixxou's Lightgun Build of PCSX2
 
-Credits go to Nixxou for his orignal work on this.
+Credits go to Nixxou for his orignal work. Orignal Repo https://github.com/nixxou/pcsx2
 
 What's Changed?
 
+- Rebased to keep up to date with current PCSX2 source code.
+
 - Nixxou's MameOutputProxy has been reworked for linux.
-The main difference now is this should compile for both Linux and Windows and Nixxou wrote MameOutputSender for windows with no universal support. 
-
-I have removed functions that are not used and split everything up so there are a Linux and Windows Version for each functions as it relies on some Windows specific code.
-Sinden Recoil implementations has been removed as it was never really finished and I didn't see much point in keeping it as there are better options for Sinden Support via tools Like Hook of the reaper and various other MameHooker replacements.
-
-Some fixes for linux in general.
-
-Build instructions for Linux
 
 
-Configure cmake config with 
+The main difference now is this should compile for both Linux and Windows and Nixxou wrote MameHookerProxy for windows with no universal support. 
+I have split the MameOutputSender into 2 files one for Linux, One for windows. 
 
-cmake -B build -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
--DCMAKE_EXE_LINKER_FLAGS_INIT="-fuse-ld=lld" \
--DCMAKE_MODULE_LINKER_FLAGS_INIT="-fuse-ld=lld" \
--DCMAKE_SHARED_LINKER_FLAGS_INIT="-fuse-ld=lld" \
--GNinja
+- Generally tidied and fixed some stuff. I removed the Sinden Recoil code as there are better options for Hookers with Sinden support.
 
+It should compile on both Linux and windows now but I have not tested Windows. Not too much has changed so it should work. Any issues feel free to raise it to me. 
 
-Build with:
+Note: I have only tested this with RS3 reapers, a Linux Build and my version of MameOutputSender. So mileage may vary.
 
-ninja -C build
+Should you have any issues please raise a issue. I am only one person and this was a personal project so don't expect around the clock support etc. It may take time for me to do work so do bare that in mind. 
 
 
+Can be built with PCSX2 instructions on their wiki.
 
-
-This should build on both linux and windows though I have not tested windows. 
 
 Nixxou's initial read me below. 
 
