@@ -1,26 +1,19 @@
 name: 🍎 MacOS Builds
 
 on:
-  push:
-    branches-ignore:
-      - "l10n_master"
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   build_macos_qt:
     name: "Defaults"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     uses: ./.github/workflows/macos_build.yml
     with:
       jobName: "MacOS Build"
       artifactPrefixName: "PCSX2-macos-Qt"
-      sign_and_notarize: true # If we find that notarization takes a long time we should disable that on PR builds
+      sign_and_notarize: false
     secrets: inherit
   build_macos_qt_arm:
     name: "arm64"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     uses: ./.github/workflows/macos_build.yml
     with:
       jobName: "MacOS arm64 Build"

@@ -1465,7 +1465,12 @@ namespace usb_lightgun
 
 	u32 GunCon2State::GetSoftwarePointerIndex() const
 	{
-		return has_relative_binds ? (InputManager::MAX_POINTER_DEVICES + port) : 0;
+		// When using relative axis binds (joystick/gamepad), the cursor lives in the USB gun
+		// slots above MAX_POINTER_DEVICES. Otherwise it maps directly to the pointer slot for
+		// this port so the cursor follows the mouse assigned to that port.
+		// Using 'port' (not 0) as the fallback means two guns without relative binds each
+		// get their own slot instead of both fighting over slot 0.
+		return has_relative_binds ? (InputManager::MAX_POINTER_DEVICES + port) : port;
 	}
 
 	void GunCon2State::UpdateSoftwarePointerPosition()
@@ -1544,16 +1549,15 @@ namespace usb_lightgun
 		const std::string pointer_binding = USB::GetConfigString(si, s->port, TypeName(), "Pointer", "");
 		std::string cursor_path(USB::GetConfigString(si, s->port, TypeName(), "cursor_path"));
 		const float cursor_scale = USB::GetConfigFloat(si, s->port, TypeName(), "cursor_scale", 1.0f);
-		u32 cursor_color = 0xFFFFFF;
-		if (std::string cursor_color_str(USB::GetConfigString(si, s->port, TypeName(), "cursor_color")); !cursor_color_str.empty())
-		{
-			// Strip the leading hash, if it's a CSS style colour.
-			const std::optional<u32> cursor_color_opt(
-				StringUtil::FromChars<u32>(cursor_color_str[0] == '#' ?
-					std::string_view(cursor_color_str).substr(1) : std::string_view(cursor_color_str), 16));
-			if (cursor_color_opt.has_value())
-				cursor_color = cursor_color_opt.value();
-		}
+
+		//Swap out CSS style colours for some thing easier to use. 
+		u32 cursor_color = 0xFFFFFF; // white fallback
+		const std::string cursor_color_str = USB::GetConfigString(si, s->port, TypeName(), "cursor_color", "Red");
+		if (cursor_color_str == "Red")         cursor_color = 0x0000FF;
+		else if (cursor_color_str == "Blue")   cursor_color = 0xFF0000;
+		else if (cursor_color_str == "Green")  cursor_color = 0x00FF00;
+		else if (cursor_color_str == "Yellow") cursor_color = 0x00FFFF;
+		else if (cursor_color_str == "Pink")   cursor_color = 0xFF00FF;
 
 		const s32 prev_pointer_index = s->GetSoftwarePointerIndex();
 
@@ -1654,6 +1658,9 @@ namespace usb_lightgun
 
 	std::span<const SettingInfo> GunCon2Device::Settings(u32 subtype) const
 	{
+		static constexpr const char* CursorColorOptions[] = {
+			TRANSLATE_NOOP("USB", "Red"), TRANSLATE_NOOP("USB", "Blue"), TRANSLATE_NOOP("USB", "Green"),
+			TRANSLATE_NOOP("USB", "Yellow"), TRANSLATE_NOOP("USB", "Pink"), nullptr};
 		static constexpr const SettingInfo info[] = {
 			{SettingInfo::Type::Path, "cursor_path", TRANSLATE_NOOP("USB", "Cursor Path"),
 				TRANSLATE_NOOP("USB", "Sets the crosshair image that this lightgun will use. Setting a crosshair image "
@@ -1662,10 +1669,9 @@ namespace usb_lightgun
 			{SettingInfo::Type::Float, "cursor_scale", TRANSLATE_NOOP("USB", "Cursor Scale"),
 				TRANSLATE_NOOP("USB", "Scales the crosshair image set above."), "1", "0.01", "10", "0.01", TRANSLATE_NOOP("USB", "%.0f%%"),
 				nullptr, nullptr, 100.0f},
-			{SettingInfo::Type::String, "cursor_color", TRANSLATE_NOOP("USB", "Cursor Color"),
-				TRANSLATE_NOOP("USB", "Applies a color to the chosen crosshair images, can be used for multiple "
-									  "players. Specify in HTML/CSS format (e.g. #aabbcc)"),
-				"#ffffff"},
+			{SettingInfo::Type::StringList, "cursor_color", TRANSLATE_NOOP("USB", "Cursor Color"),
+				TRANSLATE_NOOP("USB", "Sets the crosshair color for this player."),
+				"Red", nullptr, nullptr, nullptr, nullptr, CursorColorOptions},
 			{SettingInfo::Type::Integer, "Gun4IRComPort", TRANSLATE_NOOP("USB", "Gun4Ir Com port"),
 				TRANSLATE_NOOP("USB", "Com port to enable recoil, 0=disabled"), "0", "0", "99", "1", TRANSLATE_NOOP("USB", "%d COM"),
 				nullptr, nullptr, 1.0f},

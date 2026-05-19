@@ -140,7 +140,7 @@ set(pcsx2Sources
 
 if(WIN32)
 	target_sources(PCSX2 PRIVATE MameHookerProxy_win.cpp)
-else()
+elseif(NOT APPLE)
 	target_sources(PCSX2 PRIVATE MameHookerProxy_lnx.cpp)
 endif()
 

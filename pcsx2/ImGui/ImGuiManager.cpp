@@ -1200,7 +1200,10 @@ bool ImGuiManager::IsGamepadNorthWestSwapped()
 
 void ImGuiManager::CreateSoftwareCursorTextures()
 {
-	for (u32 i = 0; i < InputManager::MAX_POINTER_DEVICES; i++)
+	// Loop over all cursor slots, not just MAX_POINTER_DEVICES, so USB gun cursors
+	// (which live in the slots above MAX_POINTER_DEVICES) also get their textures
+	// recreated when the renderer restarts.
+	for (u32 i = 0; i < InputManager::MAX_SOFTWARE_CURSORS; i++)
 	{
 		if (!s_software_cursors[i].image_path.empty())
 			UpdateSoftwareCursorTexture(i);
@@ -1209,7 +1212,8 @@ void ImGuiManager::CreateSoftwareCursorTextures()
 
 void ImGuiManager::DestroySoftwareCursorTextures()
 {
-	for (u32 i = 0; i < InputManager::MAX_POINTER_DEVICES; i++)
+	// Same reasoning as CreateSoftwareCursorTextures — cover all slots.
+	for (u32 i = 0; i < InputManager::MAX_SOFTWARE_CURSORS; i++)
 	{
 		s_software_cursors[i].texture.reset();
 	}
@@ -1260,25 +1264,46 @@ void ImGuiManager::DrawSoftwareCursor(const SoftwareCursor& sc, const std::pair<
 void ImGuiManager::DrawSoftwareCursors()
 {
 	// This one's okay to race, worst that happens is we render the wrong number of cursors for a frame.
+
+	// USB gun cursors set their image_path on the CPU thread (in SetSoftwareCursor) before
+	// the GS thread has a chance to create the texture. This loop catches any slot that has
+	// a path but no texture yet and creates it here on the GS thread where it's safe to do so.
+	for (u32 i = 0; i < InputManager::MAX_SOFTWARE_CURSORS; i++)
+	{
+		if (!s_software_cursors[i].texture && !s_software_cursors[i].image_path.empty())
+			UpdateSoftwareCursorTexture(i);
+	}
+
+	// First loop: hardware mouse pointer slots. Uses the real OS mouse position.
 	const u32 pointer_count = InputManager::MAX_POINTER_DEVICES;
 	for (u32 i = 0; i < pointer_count; i++)
-		DrawSoftwareCursor(s_software_cursors[i], InputManager::GetPointerAbsolutePosition(i));
+	{
+		const auto [x, y] = InputManager::GetPointerAbsolutePosition(i);
+		DrawSoftwareCursor(s_software_cursors[i], {x, y});
+	}
 
+	// Second loop: USB gun cursor slots. Position is updated by the gun plugin itself.
 	for (u32 i = InputManager::MAX_POINTER_DEVICES; i < InputManager::MAX_SOFTWARE_CURSORS; i++)
 		DrawSoftwareCursor(s_software_cursors[i], s_software_cursors[i].pos);
 }
 
 void ImGuiManager::SetSoftwareCursor(u32 index, std::string image_path, float image_scale, u32 multiply_color)
 {
-	MTGS::RunOnGSThread([index, image_path = std::move(image_path), image_scale, multiply_color]() {
-		pxAssert(index < std::size(s_software_cursors));
+	pxAssert(index < std::size(s_software_cursors));
+	SoftwareCursor& sc = s_software_cursors[index];
+
+	// Write immediately so DrawSoftwareCursors' lazy-creation loop can see the path
+	// on the first frame, in case the GS lambda below hasn't run yet.
+	// Data race with GS thread reads is accepted, same as for sc.pos.
+	const bool is_hiding_or_showing = (image_path.empty() != sc.image_path.empty());
+	sc.color = multiply_color | 0xFF000000;
+	sc.image_path = image_path; // copy; lambda captures by move below
+	sc.scale = image_scale;
+
+	MTGS::RunOnGSThread([index, image_path = std::move(image_path), image_scale, multiply_color, is_hiding_or_showing]() {
 		SoftwareCursor& sc = s_software_cursors[index];
 		sc.color = multiply_color | 0xFF000000;
-		if (sc.image_path == image_path && sc.scale == image_scale)
-			return;
-
-		const bool is_hiding_or_showing = (image_path.empty() != sc.image_path.empty());
-		sc.image_path = std::move(image_path);
+		sc.image_path = image_path;
 		sc.scale = image_scale;
 		if (MTGS::IsOpen())
 			UpdateSoftwareCursorTexture(index);

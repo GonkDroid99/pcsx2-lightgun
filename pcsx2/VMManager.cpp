@@ -1190,7 +1190,6 @@ void VMManager::UpdateDiscDetails(bool booting)
 				WritePrivateProfileStringA("GENERAL", "PresetPath", ReshadeGame.c_str(), ReshadeFile.c_str());
 			else
 				WritePrivateProfileStringA("GENERAL", "PresetPath", ReshadeDefault.c_str(), ReshadeFile.c_str());
-			}
 		}
 	}
 	#endif

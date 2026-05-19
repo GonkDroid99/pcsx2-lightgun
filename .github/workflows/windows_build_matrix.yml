@@ -1,18 +1,12 @@
 name: 🖥️ Windows Builds
 
 on:
-  push:
-    branches-ignore:
-      - "l10n_master"
-  pull_request:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   # MSBUILD
   lint_vs_proj_files:
     name: Lint VS Project Files
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     runs-on: windows-2025-vs2026
     steps:
       - name: Checkout Repository
@@ -23,7 +17,6 @@ jobs:
   build_qt_sse4:
     needs: lint_vs_proj_files
     name: "SSE4"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "MSVC SSE4"
@@ -35,7 +28,6 @@ jobs:
   build_qt_avx2:
     needs: lint_vs_proj_files
     name: "AVX2"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "MSVC AVX2"
@@ -45,7 +37,6 @@ jobs:
 
   build_qt_cmake:
     name: "CMake"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "CMake MSVC"
@@ -56,8 +47,7 @@ jobs:
 
   build_qt_clang_sse4:
     needs: lint_vs_proj_files
-    name: "SSE4"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    name: "SSE4 Clang"
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "Clang SSE4"
@@ -68,8 +58,7 @@ jobs:
 
   build_qt_clang_avx2:
     needs: lint_vs_proj_files
-    name: "AVX2"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    name: "AVX2 Clang"
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "Clang AVX2"
@@ -78,8 +67,7 @@ jobs:
     secrets: inherit
 
   build_qt_cmake_clang:
-    name: "CMake"
-    if: github.repository != 'PCSX2/pcsx2' || github.event_name == 'pull_request'
+    name: "CMake Clang"
     uses: ./.github/workflows/windows_build_qt.yml
     with:
       jobName: "CMake Clang"

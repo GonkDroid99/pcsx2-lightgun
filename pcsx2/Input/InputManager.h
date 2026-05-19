@@ -166,7 +166,9 @@ namespace InputManager
 	static constexpr double VIBRATION_UPDATE_INTERVAL_SECONDS = 0.5; // 500ms
 
 	/// Maximum number of host mouse devices.
-	static constexpr u32 MAX_POINTER_DEVICES = 1;
+	/// Must be at least 2 for two-player lightgun support: USB device init clears the slot
+	/// matching each port's prev_pointer_index, so gun cursor slots must start above port 1.
+	static constexpr u32 MAX_POINTER_DEVICES = 2;
 	static constexpr u32 MAX_POINTER_BUTTONS = 3;
 
 	/// Maximum number of software cursors. We allocate an extra two for USB devices with
