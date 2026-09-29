@@ -28,6 +28,18 @@
 #include "Memory.h"
 #include "MameHookerProxy.h"
 
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+// HOTR_BATOCERA_EVDEV_PORT
+#include <libudev.h>
+#include <linux/input.h>
+#include <sys/ioctl.h>
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <vector>
+#endif
+
 namespace usb_lightgun
 {
 	enum : u32
@@ -149,6 +161,18 @@ namespace usb_lightgun
 		float center_y = 120;
 		float scale_x = 1.0f;
 		float scale_y = 1.0f;
+
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+		// Batocera native lightgun /dev/input/event device.
+		int numdevice = -1;
+		int udev_fd = -1;
+		float udev_internalGunX = 0.0f;
+		float udev_internalGunY = 0.0f;
+		int udev_gunMinx = 0;
+		int udev_gunMiny = 0;
+		int udev_gunMaxx = 1;
+		int udev_gunMaxy = 1;
+#endif
 
 		//////////////////////////////////////////////////////////////////////////
 		// Host State (Not Saved)
@@ -301,9 +325,165 @@ namespace usb_lightgun
 		p->status = USB_RET_STALL;
 	}
 
+/// Probably could do with name changes
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+	static void hotr_update_evdev_state(GunCon2State* us, u32 bid, bool pressed)
+	{
+		if (bid == BID_TRIGGER)
+			us->SetTrigggerState(pressed);
+
+		const u32 bit = 1u << bid;
+		if (pressed)
+			us->button_state |= bit;
+		else
+			us->button_state &= ~bit;
+	}
+
+	static bool hotr_udev_has(const GunCon2State* us)
+	{
+		return us->udev_fd >= 0;
+	}
+
+	static void hotr_udev_handle_event(GunCon2State* us, const input_event& event)
+	{
+		if (event.type == EV_KEY)
+		{
+			const bool pressed = (event.value != 0);
+			switch (event.code)
+			{
+				case BTN_LEFT:   hotr_update_evdev_state(us, BID_TRIGGER, pressed); break;
+				case BTN_RIGHT:  hotr_update_evdev_state(us, BID_C, pressed); break;
+				case BTN_MIDDLE: hotr_update_evdev_state(us, BID_START, pressed); break;
+				case BTN_1:      hotr_update_evdev_state(us, BID_B, pressed); break;
+				case BTN_2:      hotr_update_evdev_state(us, BID_RECALIBRATE, pressed); break;
+				case BTN_3:      hotr_update_evdev_state(us, BID_A, pressed); break;
+				case BTN_4:      hotr_update_evdev_state(us, BID_SELECT, pressed); break;
+				case BTN_5:      hotr_update_evdev_state(us, BID_DPAD_UP, pressed); break;
+				case BTN_6:      hotr_update_evdev_state(us, BID_DPAD_DOWN, pressed); break;
+				case BTN_7:      hotr_update_evdev_state(us, BID_DPAD_LEFT, pressed); break;
+				case BTN_8:      hotr_update_evdev_state(us, BID_DPAD_RIGHT, pressed); break;
+				default: break;
+			}
+		}
+		else if (event.type == EV_ABS)
+		{
+			if (event.code == ABS_X && us->udev_gunMaxx > us->udev_gunMinx)
+			{
+				const float x = std::clamp(
+					static_cast<float>(event.value - us->udev_gunMinx) /
+						static_cast<float>(us->udev_gunMaxx - us->udev_gunMinx),
+					0.0f, 1.0f);
+				us->udev_internalGunX = x * ImGuiManager::GetWindowWidth();
+			}
+			else if (event.code == ABS_Y && us->udev_gunMaxy > us->udev_gunMiny)
+			{
+				const float y = std::clamp(
+					static_cast<float>(event.value - us->udev_gunMiny) /
+						static_cast<float>(us->udev_gunMaxy - us->udev_gunMiny),
+					0.0f, 1.0f);
+				us->udev_internalGunY = y * ImGuiManager::GetWindowHeight();
+			}
+		}
+	}
+
+	static void hotr_udev_poll_gun(GunCon2State* us)
+	{
+		if (!hotr_udev_has(us))
+			return;
+
+		input_event events[32];
+		ssize_t len;
+		while ((len = read(us->udev_fd, events, sizeof(events))) > 0)
+		{
+			const size_t count = static_cast<size_t>(len) / sizeof(input_event);
+			for (size_t i = 0; i < count; i++)
+				hotr_udev_handle_event(us, events[i]);
+		}
+	}
+
+	static int hotr_event_number(const std::string& path)
+	{
+		const std::string marker = "/event";
+		const size_t pos = path.rfind(marker);
+		if (pos == std::string::npos)
+			return 0;
+		return std::atoi(path.c_str() + pos + marker.size());
+	}
+
+	static void hotr_udev_configure_gun(GunCon2State* us)
+	{
+		input_absinfo absx{}, absy{};
+		if (ioctl(us->udev_fd, EVIOCGABS(ABS_X), &absx) >= 0 &&
+			ioctl(us->udev_fd, EVIOCGABS(ABS_Y), &absy) >= 0)
+		{
+			us->udev_gunMinx = absx.minimum;
+			us->udev_gunMaxx = absx.maximum;
+			us->udev_gunMiny = absy.minimum;
+			us->udev_gunMaxy = absy.maximum;
+		}
+	}
+
+	static void hotr_udev_open_gun(GunCon2State* us)
+	{
+		udev* ctx = udev_new();
+		if (!ctx)
+			return;
+
+		udev_enumerate* enumerate = udev_enumerate_new(ctx);
+		if (!enumerate)
+		{
+			udev_unref(ctx);
+			return;
+		}
+
+		udev_enumerate_add_match_property(enumerate, "ID_INPUT_GUN", "1");
+		udev_enumerate_add_match_subsystem(enumerate, "input");
+		udev_enumerate_scan_devices(enumerate);
+
+		std::vector<std::string> devices;
+		udev_list_entry* entry = nullptr;
+		udev_list_entry_foreach(entry, udev_enumerate_get_list_entry(enumerate))
+		{
+			const char* syspath = udev_list_entry_get_name(entry);
+			udev_device* dev = udev_device_new_from_syspath(ctx, syspath);
+			if (!dev)
+				continue;
+
+			const char* node = udev_device_get_devnode(dev);
+			if (node && std::strstr(node, "/dev/input/event"))
+				devices.emplace_back(node);
+
+			udev_device_unref(dev);
+		}
+
+		udev_enumerate_unref(enumerate);
+		udev_unref(ctx);
+
+		std::sort(devices.begin(), devices.end(), [](const std::string& a, const std::string& b) {
+			return hotr_event_number(a) < hotr_event_number(b);
+		});
+
+		const int requested = (us->numdevice >= 0) ? us->numdevice : static_cast<int>(us->port);
+		if (requested < 0 || requested >= static_cast<int>(devices.size()))
+			return;
+
+		us->udev_fd = open(devices[requested].c_str(), O_RDONLY | O_NONBLOCK);
+		if (us->udev_fd < 0)
+			return;
+
+		hotr_udev_configure_gun(us);
+		Console.WriteLn("HOTR evdev: GunCon2 port %u -> %s", us->port + 1, devices[requested].c_str());
+	}
+#endif
+
 	static void guncon2_handle_data(USBDevice* dev, USBPacket* p)
 	{
 		GunCon2State* const us = USB_CONTAINER_OF(dev, GunCon2State, dev);
+
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+		if (hotr_udev_has(us))
+			hotr_udev_poll_gun(us);
+#endif
 
 		switch (p->pid)
 		{
@@ -312,6 +492,12 @@ namespace usb_lightgun
 				if (p->ep->nr == 1)
 				{
 					const auto [pos_x, pos_y] = us->CalculatePosition();
+
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+					if (!us->cursor_path.empty() && hotr_udev_has(us))
+						ImGuiManager::SetSoftwareCursorPosition(
+							us->GetSoftwarePointerIndex(), us->udev_internalGunX, us->udev_internalGunY);
+#endif
 
 					// Time Crisis games do a "calibration" by displaying a black frame for a single frame,
 					// waiting for the gun to report (0, 0), and then computing an offset on the first non-zero
@@ -415,6 +601,14 @@ namespace usb_lightgun
 		}
 
 		
+
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+		if (udev_fd >= 0)
+		{
+			close(udev_fd);
+			udev_fd = -1;
+		}
+#endif
 		Console.WriteLn("NIXX : GunCon2State -> Destroy");
 
 	}
@@ -897,7 +1091,7 @@ namespace usb_lightgun
 
 				twoplayerfix = memRead8(0x63EE64) == 1 ? true : false;
 
-				if (port == 0)
+								if (port == 0)
 				{
 					valid_query = true;
 					ammoCount = memRead32(0x643ABC);
@@ -1275,8 +1469,21 @@ namespace usb_lightgun
 	std::tuple<s16, s16> GunCon2State::CalculatePosition()
 	{
 		float pointer_x, pointer_y;
-		const auto& [window_x, window_y] =
-			(has_relative_binds) ? GetAbsolutePositionFromRelativeAxes() : InputManager::GetPointerAbsolutePosition(0);
+		float window_x, window_y;
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+		if (hotr_udev_has(this))
+		{
+			window_x = udev_internalGunX;
+			window_y = udev_internalGunY;
+		}
+		else
+#endif
+		{
+			const auto pos =
+				(has_relative_binds) ? GetAbsolutePositionFromRelativeAxes() : InputManager::GetPointerAbsolutePosition(port);
+			window_x = pos.first;
+			window_y = pos.second;
+		}
 		GSTranslateWindowToDisplayCoordinates(window_x, window_y, &pointer_x, &pointer_y);
 
 		//Apply aim adjustement for 2 players TimeCrisis if Widescreen on
@@ -1500,6 +1707,11 @@ namespace usb_lightgun
 	USBDevice* GunCon2Device::CreateDevice(SettingsInterface& si, u32 port, u32 subtype) const
 	{
 		GunCon2State* s = new GunCon2State(port);
+
+#if defined(ENABLE_BATOCERA_EVDEV) && defined(__linux__)
+		s->numdevice = USB::GetConfigInt(si, s->port, TypeName(), "numdevice", -1);
+		hotr_udev_open_gun(s);
+#endif
 		s->desc.full = &s->desc_dev;
 		s->desc.str = desc_strings;
 

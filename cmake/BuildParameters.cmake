@@ -31,6 +31,7 @@ if(UNIX AND NOT APPLE)
 	option(X11_API "Enable X11 support" ON)
 	option(WAYLAND_API "Enable Wayland support" ON)
 	option(USE_BACKTRACE "Enable libbacktrace support" ON)
+	option(ENABLE_BATOCERA_EVDEV "Enable Batocera evdev lightgun support" OFF)
 endif()
 
 if(UNIX)
@@ -236,6 +237,10 @@ endif()
 
 if(WAYLAND_API)
 	list(APPEND PCSX2_DEFS WAYLAND_API)
+endif()
+
+if(ENABLE_BATOCERA_EVDEV AND LINUX)
+	list(APPEND PCSX2_DEFS ENABLE_BATOCERA_EVDEV)
 endif()
 
 # -Wno-attributes: "always_inline function might not be inlinable" <= real spam (thousand of warnings!!!)
